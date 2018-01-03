@@ -1,0 +1,106 @@
+<workflow-app name="genericPersonalisation" xmlns="uri:oozie:workflow:0.5">
+
+    <start to="mobileDeviceLevel0"/>
+
+    <!--FIRST SUB-WORKFLOW Level 0-->
+
+    <action name="mobileDeviceLevel0">
+
+        <sub-workflow>
+
+            <app-path>${level0Level1WorkflowPath}</app-path>
+
+            <propagate-configuration/>
+
+            <configuration>
+
+                <property>
+
+                    <!-- Changeing Property Hive Script are different for every level -->
+
+                    <name>hiveScriptPath</name>
+
+                    <value>${hiveScriptPathLevel0}</value>
+
+                </property>
+
+                <property>
+
+                    <!-- Changeing Property Hive Script are different for every level -->
+
+                    <name>workflowName</name>
+
+                    <value>${workflowNameLevel0}</value>
+
+                </property>
+
+            </configuration>    
+
+        </sub-workflow>
+
+        <ok to="mobileDeviceLevel1"/>
+
+        <error to="fail"/>
+
+    </action>
+
+<action name="mobileDeviceLevel1">
+
+        <sub-workflow>
+
+            <app-path>${level0Level1WorkflowPath}</app-path>
+
+            <propagate-configuration/>
+
+            <configuration>
+
+                <property>
+
+                    <!-- Changeing Property Hive Script are different for every level -->
+
+                    <name>hiveScriptPath</name>
+
+                    <value>${hiveScriptPathLevel1}</value>
+
+                </property>
+
+                <property>
+
+                    <!-- Changeing Property Hive Script are different for every level -->
+
+                    <name>workflowName</name>
+
+                    <value>${workflowNameLevel1}</value>
+
+                </property>
+
+            </configuration>
+
+        </sub-workflow>
+ <ok to="ofa_mobileDeviceSummary"/>
+
+        <error to="fail"/>
+
+    </action>
+
+
+<action name="ofa_mobileDeviceSummary">
+    <sub-workflow>
+        <app-path>${level2WorkflowPath}</app-path>
+        <propagate-configuration/>
+        <configuration>
+            <property>
+                <name>module</name>
+                <value>${hiveScriptPathLevel2}</value>
+            </property>
+        </configuration>    
+    </sub-workflow>
+    <ok to="end"/>
+    <error to="fail"/>
+</action>
+
+<kill name="fail">
+    <message>workflow failed</message>
+  </kill>
+  <end name="end"/>
+</workflow-app>

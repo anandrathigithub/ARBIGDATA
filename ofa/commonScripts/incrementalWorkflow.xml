@@ -1,0 +1,109 @@
+<workflow-app xmlns="uri:oozie:workflow:0.1" name="${workflowName}">
+
+<start to="recordCurrTime"/>
+
+<action name="recordCurrTime">
+
+  <shell xmlns="uri:oozie:shell-action:0.3">
+
+     <job-tracker>${jobTracker}</job-tracker>
+
+     <name-node>${nameNode}</name-node>
+
+     <exec>${currTimeScript}</exec>
+
+     <file>${currTimeScriptPath}#${currTimeScript}</file>
+
+     <capture-output/>
+
+  </shell>
+
+     <ok to="getExecTime"/>
+
+     <error to="fail"/>
+
+</action>
+
+<action name="getExecTime">
+
+  <shell xmlns="uri:oozie:shell-action:0.1">
+
+     <job-tracker>${jobTracker}</job-tracker>
+
+     <name-node>${nameNode}</name-node>       
+
+     <exec>${getExecTimeScript}</exec>
+
+     <argument>${workflowName}</argument>
+
+     <file>${getExecTimeScriptPath}#${getExecTimeScript}</file>
+
+     <capture-output/>
+
+  </shell>
+
+     <ok to="ETL"/>
+
+     <error to="fail"/>
+
+</action>
+
+<action name="ETL">
+
+  <hive xmlns="uri:oozie:hive-action:0.2">
+
+     <job-tracker>${jobTracker}</job-tracker>
+
+     <name-node>${nameNode}</name-node>
+
+     <job-xml>${hiveSiteConfigPath}</job-xml>
+
+         <script>${hiveScriptPath}</script>
+
+     <param>execTime=${wf:actionData("getExecTime")["exec_time"]}</param>
+
+     <param>currTime=${wf:actionData("recordCurrTime")["curr_time"]}</param>
+
+  </hive>
+
+     <ok to="recordExecTime"/>
+
+     <error to="fail"/>
+
+</action>
+
+<action name="recordExecTime">
+
+  <shell xmlns="uri:oozie:shell-action:0.1">
+
+     <job-tracker>${jobTracker}</job-tracker>
+
+     <name-node>${nameNode}</name-node>       
+
+     <exec>${recordExecTimeScript}</exec>
+
+     <argument>${wf:actionData("recordCurrTime")["curr_time"]}</argument>
+
+     <argument>${workflowName}</argument>
+
+     <file>${recordExecTimeScriptPath}#${recordExecTimeScript}</file>
+
+     <capture-output/>
+
+  </shell>
+
+     <ok to="end"/>
+
+     <error to="fail"/>
+
+</action>
+
+<kill name="fail">
+
+  <message>workflow failed</message>
+
+</kill>
+
+<end name="end"/>
+
+</workflow-app>

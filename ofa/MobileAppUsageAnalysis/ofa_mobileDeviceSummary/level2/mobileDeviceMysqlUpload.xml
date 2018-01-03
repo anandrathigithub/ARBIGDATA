@@ -1,0 +1,91 @@
+<workflow-app xmlns="uri:oozie:workflow:0.5" name="mobileDeviceMysqlUpload">
+<start to="hiveQuery"/>
+<!--  Run Hive Query and generate the result -->
+<action name="hiveQuery">
+  <hive xmlns="uri:oozie:hive-action:0.2">
+     <job-tracker>${jobTracker}</job-tracker>
+     <name-node>${nameNode}</name-node>
+     <job-xml>${hiveSiteConfigPath}</job-xml>
+         <script>${module}</script>
+  </hive>
+    <ok to="preSqoopAction"/>
+    <!-- <ok to="deleteFiles"/> -->
+    <error to="fail"/>
+</action>
+
+<!-- Delete the intermediate table from mysql -->
+<action name="preSqoopAction">
+  <shell xmlns="uri:oozie:shell-action:0.1">
+     <job-tracker>${jobTracker}</job-tracker>
+     <name-node>${nameNode}</name-node>
+     <exec>${preSqoopActionScript}</exec>
+
+     <!-- MySql user -->
+     <argument>${mysqlUser}</argument>
+     <!-- Password -->
+     <argument>${mysqlPassword}</argument>
+     <!-- DB Name -->
+     <argument>${mysqlDatabase}</argument>
+     <!-- Table Name -->
+     <argument>${mysqlTable}</argument>
+     <!-- MySql Server -->      
+     <argument>${mysqlServer}</argument>
+
+     <file>${preSqoopActionScriptPath}#${preSqoopActionScript}</file>
+     <capture-output/>
+  </shell>
+  <ok to="sqoopExportNode"/>
+  <error to="fail"/>
+</action>
+
+<!-- Sqoop Node -->
+<action name="sqoopExportNode">
+  <sqoop xmlns="uri:oozie:sqoop-action:0.2">
+    <job-tracker>${jobTracker}</job-tracker>
+    <name-node>${nameNode}</name-node>
+    <configuration>
+      <property>
+        <name>mapred.compress.map.output</name>
+        <value>true</value>
+      </property>
+      <property>
+        <name>oozie.use.system.libpath</name>
+        <value>true</value>
+      </property>
+    </configuration>
+    <command>export -libjars ${libjarsname} -connect jdbc:mysql://${mysqlServer}:3306/${mysqlDatabase} --username ${mysqlUser} --password ${mysqlPassword} --table ${mysqlIntermediateTable} --export-dir "/apps/hive/warehouse/${hiveDB}.db/${hiveTable}/" --input-fields-terminated-by "\t" --input-null-string "\\N" --input-null-non-string "\\N"</command>
+    <file>${libjarspath}#${libjarsname}</file>
+  </sqoop>
+  <ok to="postSqoopAction"/>
+  <error to="fail"/>
+</action>
+
+<action name="postSqoopAction">
+   <shell xmlns="uri:oozie:shell-action:0.1">
+       <job-tracker>${jobTracker}</job-tracker>
+       <name-node>${nameNode}</name-node>
+       <exec>${postSqoopActionScript}</exec>
+ 
+        <!-- MySql user -->
+        <argument>${mysqlUser}</argument>
+        <!-- Password -->
+        <argument>${mysqlPassword}</argument>
+        <!-- DB Name -->
+        <argument>${mysqlDatabase}</argument>
+        <!-- Table Name -->
+        <argument>${mysqlTable}</argument>
+        <!-- MySql Server -->
+        <argument>${mysqlServer}</argument>
+ 
+        <file>${postSqoopActionScriptPath}#${postSqoopActionScript}</file>
+        <capture-output/>
+   </shell>
+  <ok to="end"/>
+  <error to="fail"/>
+</action>
+<!-- If failed kill workflow -->
+<kill name="fail">
+  <message>workflow failed</message>
+</kill>
+<end name="end"/>
+</workflow-app>
